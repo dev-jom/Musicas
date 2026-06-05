@@ -15,16 +15,21 @@ use Illuminate\View\View;
 
 class AlbumReviewController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $albums = Album::query()
+        $allAlbums = Album::query()
             ->where('status', 'published')
             ->withCount('tracks')
+            ->orderBy('release_year')
             ->latest()
             ->get();
 
+        $byArtist = $allAlbums->groupBy(fn ($a) => $a->artist ?? 'Sem artista');
+        $artists  = $byArtist->keys()->sort()->values();
+
         return view('albums.index', [
-            'albums' => $albums,
+            'byArtist' => $byArtist,
+            'artists'  => $artists,
         ]);
     }
 
@@ -36,8 +41,17 @@ class AlbumReviewController extends Controller
             ->latest()
             ->get();
 
+        $artists = Album::query()
+            ->where('status', 'published')
+            ->whereNotNull('artist')
+            ->selectRaw('artist, count(*) as total')
+            ->groupBy('artist')
+            ->orderBy('artist')
+            ->pluck('total', 'artist');
+
         return view('albums.drafts', [
-            'albums' => $albums,
+            'albums'  => $albums,
+            'artists' => $artists,
         ]);
     }
 
@@ -101,10 +115,12 @@ class AlbumReviewController extends Controller
             ]);
         }
 
-        $title = (string) ($payload['album_title'] ?? 'Album sem titulo');
-        $sourceUrl = (string) ($payload['source_url'] ?? $validated['youtube_music_url']);
+        $title        = (string) ($payload['album_title'] ?? 'Album sem titulo');
+        $sourceUrl    = (string) ($payload['source_url'] ?? $validated['youtube_music_url']);
         $coverSourceUrl = (string) ($payload['cover_url'] ?? '');
-        $tracks = is_array($payload['tracks'] ?? null) ? $payload['tracks'] : [];
+        $artist       = isset($payload['artist']) && $payload['artist'] !== '' ? (string) $payload['artist'] : null;
+        $releaseYear  = isset($payload['release_year']) && $payload['release_year'] ? (int) $payload['release_year'] : null;
+        $tracks       = is_array($payload['tracks'] ?? null) ? $payload['tracks'] : [];
 
         if ($tracks === []) {
             return back()->withErrors([
@@ -112,12 +128,14 @@ class AlbumReviewController extends Controller
             ]);
         }
 
-        $album = DB::transaction(function () use ($title, $sourceUrl, $coverSourceUrl, $tracks): Album {
+        $album = DB::transaction(function () use ($title, $sourceUrl, $coverSourceUrl, $artist, $releaseYear, $tracks): Album {
             $album = Album::query()->firstOrNew([
                 'source_url' => $sourceUrl,
             ]);
 
-            $album->title = $title;
+            $album->title        = $title;
+            $album->artist       = $artist;
+            $album->release_year = $releaseYear;
             $album->cover_source_url = $coverSourceUrl !== '' ? $coverSourceUrl : null;
 
             $coverPath = $this->downloadCover($coverSourceUrl);
@@ -159,10 +177,12 @@ class AlbumReviewController extends Controller
         $albumTrackIds = $album->tracks->pluck('id')->toArray();
 
         $request->validate([
-            'general_notes'     => ['nullable', 'string', 'max:10000'],
-            'tracks'            => ['nullable', 'array'],
-            'tracks.*.rating'   => ['nullable', 'numeric', 'min:0', 'max:10'],
-            'tracks.*.notes'    => ['nullable', 'string', 'max:5000'],
+            'general_notes'  => ['nullable', 'string', 'max:10000'],
+            'artist'         => ['nullable', 'string', 'max:255'],
+            'release_year'   => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'tracks'         => ['nullable', 'array'],
+            'tracks.*.rating'  => ['nullable', 'numeric', 'min:0', 'max:10'],
+            'tracks.*.notes'   => ['nullable', 'string', 'max:5000'],
             'best_track_id'     => ['nullable', 'integer'],
             'favorite_track_id' => ['nullable', 'integer'],
             'least_track_id'    => ['nullable', 'integer'],
@@ -186,6 +206,8 @@ class AlbumReviewController extends Controller
         DB::transaction(function () use ($request, $album, $bestId, $favId, $leastId, $tracksInput, $newStatus): void {
             $album->update([
                 'general_notes' => $request->input('general_notes'),
+                'artist'        => $request->input('artist') ?: null,
+                'release_year'  => $request->input('release_year') ? (int) $request->input('release_year') : null,
                 'status'        => $newStatus,
             ]);
 

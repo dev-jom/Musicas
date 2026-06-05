@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'title',
+    'artist',
+    'release_year',
     'source_url',
     'cover_path',
     'cover_source_url',

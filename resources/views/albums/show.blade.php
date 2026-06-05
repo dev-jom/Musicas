@@ -279,13 +279,42 @@
                     @endif
 
                     <div class="flex-grow-1">
-                        <h1 class="fw-bold text-white mb-0" style="font-size:1.25rem;">{{ $album->title }}</h1>
-                        <a href="{{ $album->source_url }}" target="_blank" class="open-link mb-3 d-inline-block">
-                            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir no YouTube Music
-                        </a>
+                        <h1 class="fw-bold text-white mb-1" style="font-size:1.25rem;">{{ $album->title }}</h1>
+                        {{-- artista + ano --}}
+                        <div class="d-flex gap-2 align-items-center mb-2 flex-wrap">
+                            @if($album->artist)
+                                <span class="text-info fw-semibold" style="font-size:.88rem;">{{ $album->artist }}</span>
+                            @endif
+                            @if($album->release_year)
+                                <span class="text-secondary" style="font-size:.82rem;">{{ $album->release_year }}</span>
+                            @endif
+                            <a href="{{ $album->source_url }}" target="_blank" class="open-link">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>YouTube Music
+                            </a>
+                        </div>
+                        {{-- campos editáveis --}}
+                        <div class="d-flex gap-2 mb-2 flex-wrap">
+                            <input
+                                type="text"
+                                name="artist"
+                                value="{{ old('artist', $album->artist) }}"
+                                placeholder="Artista"
+                                class="form-control form-control-sm"
+                                style="max-width:220px;background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.1);color:#fff;"
+                            >
+                            <input
+                                type="number"
+                                name="release_year"
+                                value="{{ old('release_year', $album->release_year) }}"
+                                placeholder="Ano"
+                                min="1900" max="2100"
+                                class="form-control form-control-sm"
+                                style="max-width:90px;background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.1);color:#fff;"
+                            >
+                        </div>
                         <textarea
                             name="general_notes"
-                            rows="3"
+                            rows="2"
                             placeholder="Texto geral do album (opiniao, contexto, etc)..."
                             class="general-notes-area form-control form-control-sm w-100"
                         >{{ old('general_notes', $album->general_notes) }}</textarea>

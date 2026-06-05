@@ -102,6 +102,38 @@ def main() -> int:
     entries = info.get("entries") or []
     playlist_id = info.get("id")
 
+    # Artist: prefer playlist-level fields, fall back to first track's uploader
+    artist: str | None = None
+    for field in ("artist", "uploader", "channel", "creator"):
+        val = info.get(field)
+        if isinstance(val, str) and val.strip():
+            artist = val.strip()
+            break
+    if not artist:
+        for entry in entries:
+            if isinstance(entry, dict):
+                for field in ("artist", "uploader", "channel", "creator"):
+                    val = entry.get(field)
+                    if isinstance(val, str) and val.strip():
+                        artist = val.strip()
+                        break
+            if artist:
+                break
+
+    # Year: release_year field, or extract from upload_date (YYYYMMDD)
+    release_year: int | None = info.get("release_year") or info.get("year")
+    if not release_year:
+        for entry in entries:
+            if isinstance(entry, dict):
+                ry = entry.get("release_year")
+                if ry:
+                    release_year = int(ry)
+                    break
+                ud = entry.get("upload_date")
+                if isinstance(ud, str) and len(ud) >= 4 and ud[:4].isdigit():
+                    release_year = int(ud[:4])
+                    break
+
     tracks: list[dict[str, Any]] = []
     for index, entry in enumerate(entries, start=1):
         if not isinstance(entry, dict):
@@ -120,10 +152,12 @@ def main() -> int:
         )
 
     payload = {
-        "source_url": args.url,
-        "album_title": info.get("title"),
-        "cover_url": _best_thumbnail(info),
-        "tracks": tracks,
+        "source_url":    args.url,
+        "album_title":   info.get("title"),
+        "artist":        artist,
+        "release_year":  release_year,
+        "cover_url":     _best_thumbnail(info),
+        "tracks":        tracks,
     }
 
     json.dump(payload, sys.stdout, ensure_ascii=True)
