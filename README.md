@@ -26,8 +26,8 @@ Sistema pessoal para avaliar álbuns musicais importados do YouTube Music.
 ### 1. Clonar o projeto
 
 ```bash
-git clone https://github.com/SEU_USUARIO/musicas.git
-cd musicas
+git clone https://github.com/dev-jom/Musicas.git
+cd Musicas
 ```
 
 ### 2. Configurar o Laradock
@@ -79,25 +79,26 @@ DB_PASSWORD=secret
 ### 4. Instalar dependências PHP
 
 ```bash
-docker compose exec php-fpm bash -lc "cd /var/www/musicas && composer install"
+cd ../laradock
+docker compose exec php-fpm bash -lc "cd /var/www/Musicas && composer install"
 ```
 
 ### 5. Gerar a chave da aplicação
 
 ```bash
-docker compose exec php-fpm bash -lc "cd /var/www/musicas && php artisan key:generate"
+docker compose exec php-fpm bash -lc "cd /var/www/Musicas && php artisan key:generate"
 ```
 
 ### 6. Rodar as migrations
 
 ```bash
-docker compose exec php-fpm bash -lc "cd /var/www/musicas && php artisan migrate"
+docker compose exec php-fpm bash -lc "cd /var/www/Musicas && php artisan migrate"
 ```
 
 ### 7. Criar o link simbólico de storage (capas dos álbuns)
 
 ```bash
-docker compose exec php-fpm bash -lc "cd /var/www/musicas && php artisan storage:link"
+docker compose exec php-fpm bash -lc "cd /var/www/Musicas && php artisan storage:link"
 ```
 
 ### 8. Configurar o Python para importar álbuns
@@ -109,7 +110,7 @@ docker compose exec php-fpm bash
 
 # Dentro do container:
 apt update && apt install -y python3.12-venv
-cd /var/www/musicas
+cd /var/www/Musicas
 python3 -m venv .venv
 .venv/bin/python -m pip install -r scripts/requirements.txt
 exit
@@ -118,7 +119,7 @@ exit
 Adicione ao `.env` do projeto:
 
 ```env
-PYTHON_BIN=/var/www/musicas/.venv/bin/python
+PYTHON_BIN=/var/www/Musicas/.venv/bin/python
 ```
 
 > Ajuste o caminho caso o projeto esteja em outro local dentro do container.
@@ -131,7 +132,7 @@ Crie o arquivo `laradock/nginx/sites/musicas.conf`:
 server {
     listen 80;
     server_name localhost;
-    root /var/www/musicas/public;
+    root /var/www/Musicas/public;
     index index.php;
 
     location / {
@@ -183,4 +184,4 @@ resources/views/albums/show.blade.php            — avaliação/edição do ál
 | `DB_DATABASE` | Nome do banco | `musicas` |
 | `DB_USERNAME` | Usuário | `default` |
 | `DB_PASSWORD` | Senha | `secret` |
-| `PYTHON_BIN` | Caminho do Python com yt-dlp | `/var/www/musicas/.venv/bin/python` |
+| `PYTHON_BIN` | Caminho do Python com yt-dlp | `/var/www/Musicas/.venv/bin/python` |
