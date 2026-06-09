@@ -35,23 +35,16 @@ class AlbumReviewController extends Controller
 
     public function drafts(): View
     {
-        $albums = Album::query()
+        $allDrafts = Album::query()
             ->where('status', 'draft')
             ->withCount('tracks')
             ->latest()
             ->get();
 
-        $artists = Album::query()
-            ->where('status', 'published')
-            ->whereNotNull('artist')
-            ->selectRaw('artist, count(*) as total')
-            ->groupBy('artist')
-            ->orderBy('artist')
-            ->pluck('total', 'artist');
+        $byArtist = $allDrafts->groupBy(fn ($a) => $a->artist ?? 'Sem artista');
 
         return view('albums.drafts', [
-            'albums'  => $albums,
-            'artists' => $artists,
+            'byArtist' => $byArtist,
         ]);
     }
 
